@@ -55,4 +55,3 @@ def RetriveXMLFileNames(XMLFileType):
 
 ForecastReponseData = RetriveXMLFileNames(ForecastReportName)
 OuttrunResponseData = RetriveXMLFileNames(OutturnReportName)
-
