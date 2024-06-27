@@ -4,7 +4,7 @@ import pandas as pd
 startDate = '2024-06-20'
 endDate = '2024-06-26'
 FileName = "PUB_DailyLoadFcst_202406260835.xml" #5 min period isolation example
-PageSize = '10'
+PageSize = '1'
 SortBy = 'PublishTime'
 ForecastReportName = 'Daily Load Forecast Summary'
 OutturnReportName = 'Average Outturn Availability'
@@ -20,7 +20,7 @@ for date in dateRange:
         'ReportName' : ForecastReportName,
         'Date': date,
         'page_size': PageSize,
-        'sort_by': SortBy
+        'sort_by': SortBy,
     }
      ForecastResponse = requests.get(api_link, params=ForecastParameters)
      if ForecastResponse.status_code != 200:
@@ -48,5 +48,4 @@ for date in dateRange:
     else:
         OutturnGridInfo = OutturnResponse.json()
 
-        print("Forecast Grid Information:", ForecastGridInfo)
         print("\n\n\nOutturn Grid Information:", OutturnGridInfo)
