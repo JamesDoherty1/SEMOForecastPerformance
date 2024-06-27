@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 
-startDate = '2024-06-20'
+startDate = '2024-06-10'
 endDate = '2024-06-26'
 FileName = "PUB_DailyLoadFcst_202406260835.xml" #5 min period isolation example
 PageSize = '10'
@@ -41,7 +41,7 @@ for date in dateRange:
         ForecastGridInfo = ForecastResponse.json()
         OutturnGridInfo = OutturnResponse.json()
 
-        print("Forecast Grid Information:", ForecastGridInfo)
+        print("\n\n\nForecast Grid Information:", ForecastGridInfo)
         print("\n\n\nOutturn Grid Information:", OutturnGridInfo)
 
 
