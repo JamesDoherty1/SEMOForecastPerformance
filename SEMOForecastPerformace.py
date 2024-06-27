@@ -57,3 +57,27 @@ for date in dateRange:
 
         OutturnResponseData.append(OutturnGridInfo)
         print("\n\n\nOutturn Grid Information:", OutturnGridInfo)
+
+
+def filter_xml_strings(json_file_path):
+    try:
+        with open(json_file_path, 'r') as file:
+            data = json.load(file)
+        
+        # Ensure data is a list of strings
+        if isinstance(data, list):
+            filtered_strings = [s for s in data if isinstance(s, str) and s.endswith('.xml')]
+            return filtered_strings
+        else:
+            print("The JSON file does not contain a list.")
+            return []
+
+    except json.JSONDecodeError:
+        print("Failed to decode JSON.")
+        return []
+    except FileNotFoundError:
+        print("File not found.")
+        return []
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return []
