@@ -24,6 +24,19 @@ OutturnReportName = 'Average Outturn Availability'
 # Getting the range of dates
 dateRange = pd.date_range(start=startDate, end=endDate).date
 
+# Function to filter XML strings from a JSON object
+def filterXMLStrings(json_data):
+    try:
+        items = json_data.get('items', [])
+        filtered_strings = [item['ResourceName'] for item in items if item['ResourceName'].endswith('.xml')]
+        return filtered_strings
+    except KeyError:
+        print("KeyError: The JSON object does not contain the expected keys.")
+        return []
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return []
+
 #function to loop through dates and return all the XML file names we need
 def RetriveXMLFileNames(XMLFileType):
     XMLFileNames = []
@@ -48,16 +61,9 @@ def RetriveXMLFileNames(XMLFileType):
 
 ForecastReponseData = RetriveXMLFileNames(ForecastReportName)
 OuttrunResponseData = RetriveXMLFileNames(OutturnReportName)
-
-# Function to filter XML strings from a JSON object
-def filterXMLStrings(json_data):
-    try:
-        items = json_data.get('items', [])
-        filtered_strings = [item['ResourceName'] for item in items if item['ResourceName'].endswith('.xml')]
-        return filtered_strings
-    except KeyError:
-        print("KeyError: The JSON object does not contain the expected keys.")
-        return []
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return []
+        
+print(ForecastReponseData[0])
+data={
+    'Name':ForecastReponseData[0]
+}
+print(apiQuery(data).json())
