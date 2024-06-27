@@ -15,7 +15,7 @@ def filterXMLStrings(json_data):
     except Exception as e:
         print(f"An error occurred: {e}")
         return []
-
+    
 # Specifying our parameters
 startDate = '2024-05-20'
 endDate = '2024-05-26'
@@ -32,41 +32,27 @@ dateRange = pd.date_range(start=startDate, end=endDate).date
 api_link = "http://reports.sem-o.com/api/v1/documents/static-reports"
 
 
-# Retrieving Daily load forecast Summary
-for date in dateRange:
-    ForecastParameters = {
-        'ReportName': ForecastReportName,
+def RetriveXMLFileNames(XMLFileType):
+    XMLFileNames = []
+    for date in dateRange:
+        TypeParameters = {
+        'ReportName': XMLFileType,
         'Date': date,
         'page_size': PageSize,
         'sort_by': SortBy,
-    }
-    ForecastResponse = requests.get(api_link, params=ForecastParameters)
-    if ForecastResponse.status_code != 200:
-        print(f"Failed to retrieve data: {ForecastResponse.status_code}")
-    else:
-        ForecastGridInfo = ForecastResponse.json()
+        }
+        Response = requests.get(api_link, params=TypeParameters)
+        if Response.status_code != 200:
+            print(f"Failed to retrieve data: {Response.status_code}")
+        else:
+            GridInfo = Response.json()
 
-        #filtering data to isolate the names of the xml files we want to use
-        FilteredForecast = filterXMLStrings(ForecastGridInfo)
-        ForecastResponseData.append(FilteredForecast)
-        print("\n\n\nForecast Grid Information:", FilteredForecast)
+            #filtering data to isolate the names of the xml files we want to use
+            FilteredGridInfo = filterXMLStrings(GridInfo)
+            XMLFileNames.append(FilteredGridInfo)
+            print("\n\n\n"+XMLFileType+":", FilteredGridInfo)
+    return XMLFileNames
 
-# Retrieving the Average Outturn Availability 
-for date in dateRange:
-    OutturnParameters = {
-        'ReportName': OutturnReportName,
-        'Date': date,
-        'page_size': PageSize,
-        'sort_by': SortBy
-    }
-    OutturnResponse = requests.get(api_link, params=OutturnParameters)
-    if OutturnResponse.status_code != 200:
-        print(f"Failed to retrieve data: {OutturnResponse.status_code}")
-    else:
-        OutturnGridInfo = OutturnResponse.json()
-        
-        #filtering data to isolate the names of the xml files we want to use
-        FilteredOutturn = filterXMLStrings(OutturnGridInfo)
-        OutturnResponseData.append(FilteredOutturn)
-        print("\n\n\nOutturn Grid Information:", FilteredOutturn)
+ForecastReponseData = RetriveXMLFileNames(ForecastReportName)
+OuttrunResponseData = RetriveXMLFileNames(OutturnReportName)
 
