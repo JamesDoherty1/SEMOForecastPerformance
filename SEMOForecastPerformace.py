@@ -7,7 +7,7 @@ FileName = "PUB_DailyLoadFcst_202406260835.xml" #5 min period isolation example
 PageSize = '10'
 SortBy = 'PublishTime'
 ForecastReportName = 'Daily Load Forecast Summary'
-OutturnReportName = 'Average Outturn Availibility'
+OutturnReportName = 'Average Outturn Availability'
 
 dateRange = pd.date_range(start=startDate, end=endDate)
 
