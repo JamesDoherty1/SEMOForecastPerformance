@@ -20,6 +20,7 @@ PageSize = '1'
 SortBy = 'PublishTime'
 ForecastReportName = 'Daily Load Forecast Summary'
 OutturnReportName = 'Average Outturn Availability'
+ResourceName = ''
 
 # Getting the range of dates
 dateRange = pd.date_range(start=startDate, end=endDate).date
@@ -62,8 +63,21 @@ def RetriveXMLFileNames(XMLFileType):
 ForecastReponseData = RetriveXMLFileNames(ForecastReportName)
 OuttrunResponseData = RetriveXMLFileNames(OutturnReportName)
         
-print(ForecastReponseData[0])
-data={
-    'Name':ForecastReponseData[0]
-}
-print(apiQuery(data).json())
+#function that takes in a XML file and parses for our desired resource
+def XMLParsing(XMLfile, ResourceName):
+    ParsedXML = []
+    return ParsedXML
+
+def XMLFileData(arrayOfXMLFileNames):
+    ParsedXMLfileData = []
+
+    for XMLfileName in arrayOfXMLFileNames:
+        #Query for the file
+        data={
+            'Name' : XMLFile
+        }
+        XMLFile = apiQuery(data).json()
+        #parse function to retrive the resourse
+        ParsedXMLfileData.append(XMLParsing(XMLFile,ResourceName))
+    
+    return ParsedXMLfileData
