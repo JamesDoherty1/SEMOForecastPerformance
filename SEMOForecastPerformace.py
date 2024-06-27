@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 
+#Specifying our parameters
 startDate = '2024-06-20'
 endDate = '2024-06-26'
 FileName = "PUB_DailyLoadFcst_202406260835.xml" #5 min period isolation example
@@ -9,9 +10,15 @@ SortBy = 'PublishTime'
 ForecastReportName = 'Daily Load Forecast Summary'
 OutturnReportName = 'Average Outturn Availability'
 
+#Getting the range of dates
 dateRange = pd.date_range(start=startDate, end=endDate).date
 
 api_link = "http://reports.sem-o.com/api/v1/documents/static-reports"
+
+
+#Creating arrays to hold out data
+ForecastResponseData = []
+OutturnResponseData = []
 
 #Retriving Daily load forecast Summary
 for date in dateRange:
@@ -28,7 +35,7 @@ for date in dateRange:
          
      else:
         ForecastGridInfo = ForecastResponse.json()
-
+        ForecastResponseData.append(ForecastGridInfo)
         print("\n\n\nForecast Grid Information:", ForecastGridInfo)
          
 
@@ -48,4 +55,5 @@ for date in dateRange:
     else:
         OutturnGridInfo = OutturnResponse.json()
 
+        OutturnResponseData.append(OutturnGridInfo)
         print("\n\n\nOutturn Grid Information:", OutturnGridInfo)
