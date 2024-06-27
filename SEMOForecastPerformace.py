@@ -3,7 +3,14 @@ import pandas as pd
 
 import xml.etree.ElementTree as ET # Will be used to parse the data
 
-    
+
+#link to connect to the api
+api_link = "http://reports.sem-o.com/api/v1/documents/static-reports"
+
+def apiQuery(parameters):
+    Response = requests.get(api_link, params=parameters)
+    return Response
+  
 # Specifying our parameters
 startDate = '2024-05-20'
 endDate = '2024-05-26'
@@ -17,12 +24,7 @@ OutturnReportName = 'Average Outturn Availability'
 # Getting the range of dates
 dateRange = pd.date_range(start=startDate, end=endDate).date
 
-api_link = "http://reports.sem-o.com/api/v1/documents/static-reports"
-
-ForecastReponseData = RetriveXMLFileNames(ForecastReportName)
-OuttrunResponseData = RetriveXMLFileNames(OutturnReportName)
-
-
+#function to loop through dates and return all the XML file names we need
 def RetriveXMLFileNames(XMLFileType):
     XMLFileNames = []
     for date in dateRange:
@@ -32,7 +34,7 @@ def RetriveXMLFileNames(XMLFileType):
         'page_size': PageSize,
         'sort_by': SortBy,
         }
-        Response = requests.get(api_link, params=TypeParameters)
+        Response = apiQuery(TypeParameters)
         if Response.status_code != 200:
             print(f"Failed to retrieve data: {Response.status_code}")
         else:
@@ -43,6 +45,9 @@ def RetriveXMLFileNames(XMLFileType):
             XMLFileNames.append(FilteredGridInfo)
             print("\n\n\n"+XMLFileType+":", FilteredGridInfo)
     return XMLFileNames
+
+ForecastReponseData = RetriveXMLFileNames(ForecastReportName)
+OuttrunResponseData = RetriveXMLFileNames(OutturnReportName)
 
 # Function to filter XML strings from a JSON object
 def filterXMLStrings(json_data):
