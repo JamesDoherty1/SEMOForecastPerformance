@@ -62,16 +62,18 @@ ForecastResponseData = RetrieveXMLFileNames(ForecastReportName)
 OutturnResponseData = RetrieveXMLFileNames(OutturnReportName)
 
 # Function that takes in an XML file and parses for our desired resource
-def XMLParsing(XMLfile, ResourceName):
+def XMLParsing(XMLfileName,XMLfile, ResourceName):
     ParsedXML = []
     
     try:
-        tree = ET.ElementTree(ET.fromstring(XMLfile))
+        tree = ET.ElementTree(XMLfileName)
+        print('found file')
         root = tree.getroot()
-        
-        for elem in root.findall('.//'):
-            if ResourceName in elem.tag:
-                ParsedXML.append(elem.text)
+        # print(root.tag)
+        # print(root.attrib)
+        # for elem in root.findall('.//'):
+        #     if ResourceName in elem.tag:
+        #         ParsedXML.append(elem.text)
                 
     except ET.ParseError as e:
         print(f"ParseError: Failed to parse XML file: {e}")
@@ -89,12 +91,14 @@ def XMLFileData(arrayOfXMLFileNames, ResourceName):
         Response = apiQuery(data)
         if Response.status_code == 200:
             XMLFile = Response.text
+
             # Parse function to retrieve the resource
-            ParsedXMLfileData.append(XMLParsing(XMLFile, ResourceName))
+            ParsedXMLfileData.append(XMLParsing(XMLfileName,XMLFile, ResourceName))
     
     return ParsedXMLfileData
 
 ParsedForecastData = XMLFileData(ForecastResponseData, "ForecastAvailability")
 ParsedOutturnData = XMLFileData(OutturnResponseData, "AvgOutturnAvail")
+
 print(ParsedForecastData)
 print(ParsedOutturnData)
