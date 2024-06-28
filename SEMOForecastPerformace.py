@@ -17,6 +17,7 @@ SortBy = 'PublishTime'
 ForecastReportName = 'Forecast Availability'
 OutturnReportName = 'Average Outturn Availability'
 ResourceName = ''
+ParticipantName = 'PT_400116'
 
 # Getting the range of dates
 dateRange = pd.date_range(start=startDate, end=endDate).date
