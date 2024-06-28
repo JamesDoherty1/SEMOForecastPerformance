@@ -1,0 +1,7 @@
+Host bitbucket.org
+  AddKeysToAgent yes
+  IdentityFile ~/.ssh/keys/{ssh-key-name}
+
+Host gitlab.com
+  AddKeysToAgent yes
+  IdentityFile ~/.ssh/keys/{ssh-key-name}

@@ -1,24 +1,20 @@
-import requests #API requests
+import requests  # API requests
 import pandas as pd
+import xml.etree.ElementTree as ET  # Will be used to parse the data
 
-import xml.etree.ElementTree as ET # Will be used to parse the data
-
-
-#link to connect to the api
+# Link to connect to the API
 api_link = "http://reports.sem-o.com/api/v1/documents/static-reports"
 
 def apiQuery(parameters):
     Response = requests.get(api_link, params=parameters)
     return Response
-  
+
 # Specifying our parameters
-startDate = '2024-05-20'
-endDate = '2024-05-26'
 startDate = '2024-05-20'
 endDate = '2024-05-26'
 PageSize = '1'
 SortBy = 'PublishTime'
-ForecastReportName = 'Daily Load Forecast Summary'
+ForecastReportName = 'Forecast Availability'
 OutturnReportName = 'Average Outturn Availability'
 ResourceName = ''
 
@@ -38,15 +34,15 @@ def filterXMLStrings(json_data):
         print(f"An error occurred: {e}")
         return []
 
-#function to loop through dates and return all the XML file names we need
-def RetriveXMLFileNames(XMLFileType):
+# Function to loop through dates and return all the XML file names we need
+def RetrieveXMLFileNames(XMLFileType):
     XMLFileNames = []
     for date in dateRange:
         TypeParameters = {
-        'ReportName': XMLFileType,
-        'Date': date,
-        'page_size': PageSize,
-        'sort_by': SortBy,
+            'ReportName': XMLFileType,
+            'Date': date,
+            'page_size': PageSize,
+            'sort_by': SortBy,
         }
         Response = apiQuery(TypeParameters)
         if Response.status_code != 200:
@@ -54,30 +50,50 @@ def RetriveXMLFileNames(XMLFileType):
         else:
             GridInfo = Response.json()
 
-            #filtering data to isolate the names of the xml files we want to use
+            # Filtering data to isolate the names of the XML files we want to use
             FilteredGridInfo = filterXMLStrings(GridInfo)
             XMLFileNames.append(FilteredGridInfo)
-            print("\n\n\n"+XMLFileType+":", FilteredGridInfo)
+            print("\n\n\n" + XMLFileType + ":", FilteredGridInfo)
+
     return XMLFileNames
 
-ForecastReponseData = RetriveXMLFileNames(ForecastReportName)
-OuttrunResponseData = RetriveXMLFileNames(OutturnReportName)
-        
-#function that takes in a XML file and parses for our desired resource
+ForecastResponseData = RetrieveXMLFileNames(ForecastReportName)
+OutturnResponseData = RetrieveXMLFileNames(OutturnReportName)
+
+# Function that takes in an XML file and parses for our desired resource
 def XMLParsing(XMLfile, ResourceName):
     ParsedXML = []
+    
+    try:
+        tree = ET.ElementTree(ET.fromstring(XMLfile))
+        root = tree.getroot()
+        
+        for elem in root.findall('.//'):
+            if ResourceName in elem.tag:
+                ParsedXML.append(elem.text)
+                
+    except ET.ParseError as e:
+        print(f"ParseError: Failed to parse XML file: {e}")
+    
     return ParsedXML
 
-def XMLFileData(arrayOfXMLFileNames):
+def XMLFileData(arrayOfXMLFileNames, ResourceName):
     ParsedXMLfileData = []
 
     for XMLfileName in arrayOfXMLFileNames:
-        #Query for the file
-        data={
-            'Name' : XMLFile
+        # Query for the file
+        data = {
+            'Name': XMLfileName
         }
-        XMLFile = apiQuery(data).json()
-        #parse function to retrive the resourse
-        ParsedXMLfileData.append(XMLParsing(XMLFile,ResourceName))
+        Response = apiQuery(data)
+        if Response.status_code == 200:
+            XMLFile = Response.text
+            # Parse function to retrieve the resource
+            ParsedXMLfileData.append(XMLParsing(XMLFile, ResourceName))
     
     return ParsedXMLfileData
+
+ParsedForecastData = XMLFileData(ForecastResponseData, "ForecastAvailability")
+ParsedOutturnData = XMLFileData(OutturnResponseData, "AvgOutturnAvail")
+print(ParsedForecastData)
+print(ParsedOutturnData)
