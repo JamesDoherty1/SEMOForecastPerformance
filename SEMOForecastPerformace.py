@@ -66,11 +66,10 @@ def XMLParsing(XMLfileName,XMLfile, ResourceName):
     ParsedXML = []
     
     try:
-        tree = ET.ElementTree(XMLfileName)
-        print('found file')
-        root = tree.getroot()
-        # print(root.tag)
-        # print(root.attrib)
+        tree = ET.parse(XMLfileName)
+        print('found file',XMLfileName)
+        #print(root.tag)
+        #print(root.attrib)
         # for elem in root.findall('.//'):
         #     if ResourceName in elem.tag:
         #         ParsedXML.append(elem.text)
@@ -90,10 +89,9 @@ def XMLFileData(arrayOfXMLFileNames, ResourceName):
         }
         Response = apiQuery(data)
         if Response.status_code == 200:
-            XMLFile = Response.text
-
+            XMLFile = Response
             # Parse function to retrieve the resource
-            ParsedXMLfileData.append(XMLParsing(XMLfileName,XMLFile, ResourceName))
+            ParsedXMLfileData.append(XMLParsing(XMLfileName[0],XMLFile, ResourceName))
     
     return ParsedXMLfileData
 
