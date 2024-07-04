@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import time
 import pytz
+from IPython.display import display
 
-# Link to connect to the API
 api_link = "http://reports.sem-o.com/api/v1/documents/static-reports"
 
 def apiQuery(parameters):
@@ -15,8 +15,8 @@ def apiQuery(parameters):
     return Response
 
 # Specifying our parameters
-startDate = '2024-05-28'
-endDate = '2024-06-30'
+startDate = '2024-05-04'
+endDate = '2024-07-03'
 PageSize = '1'
 SortBy = 'PublishTime'
 ForecastReportName = 'Forecast Availability'
@@ -30,6 +30,7 @@ ResourceNames = {"EE1":"DSU_401400", "EE2":"DSU_401870", "EE3":"DSU_402100", "EE
 # Getting the range of dates
 dateRange = pd.date_range(start=startDate, end=endDate).date
 
+
 # Function to filter XML strings from a JSON object
 def filterXMLStrings(json_data):
     try:
@@ -42,6 +43,8 @@ def filterXMLStrings(json_data):
     except Exception as e:
         print(f"An error occurred: {e}")
         return []
+
+
 
 # Function to loop through dates and return all the XML file names we need
 def RetrieveXMLFileNames(XMLFileType):
@@ -66,6 +69,8 @@ def RetrieveXMLFileNames(XMLFileType):
             #print("\n\n\n" + XMLFileType + ":", FilteredGridInfo)
 
     return XMLFileNames
+
+
 
 ForecastResponseData = RetrieveXMLFileNames(ForecastReportName)
 OutturnResponseData = RetrieveXMLFileNames(OutturnReportName)
@@ -96,9 +101,6 @@ def ResponseDataToDataFrame(ResponseData, Availability, ParticipantNameROI, Part
 Forecast = ResponseDataToDataFrame(ForecastResponseData, 'ForecastAvailability', ParticipantNameROI,ParticipantNameNI)
 Outturn = ResponseDataToDataFrame(OutturnResponseData, 'AvgOutturnAvail', ParticipantNameROI, ParticipantNameNI)
 
-Forecast
-
-Outturn
 
 #changing string to date and time
 Forecast['Times'] = pd.to_datetime(Forecast['Times'])
@@ -112,11 +114,12 @@ full_time_range = pd.date_range(start=min(Forecast['Times'].min(), Outturn['Time
                                 end=max(Forecast['Times'].max(), Outturn['Times'].max()),
                                 freq='30T')
 
-Forecast
-Outturn
+print(Forecast)
+print(Outturn)
 #Averaging out the data points for any given time
 # Forecast = Forecast.groupby('Times').mean().reindex(full_time_range).reset_index()
 # Outturn = Outturn.groupby('Times').mean().reindex(full_time_range).reset_index()
+
 
 for Resource in ResourceNames:
   print(Resource)
@@ -157,22 +160,26 @@ for Resource in ResourceNames:
   plt.show()
 
 
-#Same as above but using a scatterplot
+
 for Resource in ResourceNames:
   print(Resource)
   ForecastNew = Forecast[Forecast['ResourceName']==ResourceNames[Resource]]
   OutturnNew = Outturn[Outturn['ResourceName']==ResourceNames[Resource]]
 
 
-  plt.figure(figsize=(30, 10))
-  plt.scatter(ForecastNew['Times'], ForecastNew['Availability'], label='Forecast',s=15)
-  plt.scatter(OutturnNew['Times'], OutturnNew['Availability'], label='Outturn', s=15)
-  plt.xticks(rotation=90)
-  plt.rcParams.update({'font.size':22})
-  plt.legend()
-  plt.xlabel('Times')
-  plt.ylabel('Availability')
+  labels = ['Average Outturn', 'Forecast Availibility']
+
+  counts = [OutturnNew['Availability'].mean(),ForecastNew['Availability'].mean()]
+  bar_labels = [ 'Forecast','Outturn']
+  bar_colors = ['tab:blue','tab:orange']
+  plt.figure(figsize=(10,10))
+  plt.bar(labels, counts, label=bar_labels, color=bar_colors)
+
+
+  plt.ylabel('Availability (MW)')
   plt.title(Resource)
+  plt.legend(title='Viotas Outturn vs Availability')
+
   plt.show()
 
 
@@ -197,6 +204,7 @@ plt.legend()
 # Display the chart
 plt.tight_layout()  # Adjust layout for better spacing
 plt.show()
+
 
 all_weekly_forecast_mwh = pd.DataFrame()
 all_weekly_outturn_mwh = pd.DataFrame()
@@ -240,7 +248,9 @@ for Resource in ResourceNames:
   plt.tight_layout()
   plt.show()
 
-  # Sum the weekly MWh across all resources
+
+
+# Sum the weekly MWh across all resources
 total_weekly_forecast_mwh = all_weekly_forecast_mwh.sum(axis=1)
 total_weekly_outturn_mwh = all_weekly_outturn_mwh.sum(axis=1)
 
@@ -259,6 +269,8 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 
+
+
 for i in range(len(forecast_means)):
   difference_forecast_outturn = forecast_means[i] - outturn_means[i]
   print(difference_forecast_outturn)
@@ -268,6 +280,7 @@ for key in ResourceNames.keys():
 
   }
   print(key)
+
 
 
 
@@ -322,6 +335,8 @@ def Summary_df(Forecast,Outturn):
 OverallSummary = Summary_df(Forecast,Outturn)
 print(OverallSummary)
 
+
+
 def split_dataframe_weekly(df, time_column='Times'):
 
   # Ensure the time column is in datetime format
@@ -349,5 +364,16 @@ def split_dataframe_weekly(df, time_column='Times'):
 Forecast_weekly = split_dataframe_weekly(Forecast)
 Outturn_weekly = split_dataframe_weekly(Outturn)
 
-print(Forecast_weekly)
-print(Outturn_weekly)
+display(Forecast_weekly)
+display(Outturn_weekly)
+
+
+
+
+for key in Forecast_weekly.keys():
+  print(key)
+  summary =Summary_df(Forecast_weekly[key], Outturn_weekly[key])
+  display(summary)
+
+
+  
