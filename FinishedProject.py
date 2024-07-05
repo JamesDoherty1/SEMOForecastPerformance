@@ -1,12 +1,9 @@
 import requests  # API requests
 import pandas as pd
 import numpy as np
-import xml.etree.ElementTree as ET  # Will be used to parse the data
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-import time
 import pytz
-from IPython.display import display
 
 api_link = "http://reports.sem-o.com/api/v1/documents/static-reports"
 
@@ -24,11 +21,13 @@ outturn_report_name = 'Average Outturn Availability'
 participant_name_ROI = 'PT_400116'
 participant_name_NI = 'PT_502516'
 
-resource_names = {"EE1":"DSU_401400", "EE2":"DSU_401870", "EE3":"DSU_402100", "EE4":"DSU_402120", "EE5":"DSU_402090", "EE6":"DSU_403520",
-"EE7":"DSU_403560", "EE8":"DSU_403630", "EE9": "DSU_403640","VN1":"DSU_503460", "VS1":"DSU_403730","VS2": "DSU_403760"  }
+resource_names = {
+    "EE1": "DSU_401400", "EE2": "DSU_401870", "EE3": "DSU_402100", "EE4": "DSU_402120",
+    "EE5": "DSU_402090", "EE6": "DSU_403520", "EE7": "DSU_403560", "EE8": "DSU_403630",
+    "EE9": "DSU_403640", "VN1": "DSU_503460", "VS1": "DSU_403730", "VS2": "DSU_403760"
+}
 # Getting the range of dates
 date_range = pd.date_range(start=start_date, end=end_date).date
-
 
 # Function to filter XML strings from a JSON object
 def filter_xml_strings(json_data):
@@ -43,15 +42,11 @@ def filter_xml_strings(json_data):
         print(f"An error occurred: {e}")
         return []
 
-
-
 # Function to loop through dates and return all the XML file names we need
 def retrieve_xml_file_names(xml_file_type):
-    
     xml_file_names = []
 
     for date in date_range:
-        
         type_parameters = {
             'ReportName': xml_file_type,
             'Date': date,
@@ -65,21 +60,16 @@ def retrieve_xml_file_names(xml_file_type):
             print(f"Failed to retrieve data: {Response.status_code}")
         else:
             GridInfo = Response.json()
-
             # Filtering data to isolate the names of the XML files we want to use
             filtered_grid_info = filter_xml_strings(GridInfo)
             xml_file_names.extend(filtered_grid_info)  # Extend instead of append
 
-            #print("\n\n\n" + XMLFileType + ":", FilteredGridInfo)
-
     return xml_file_names
-
-
 
 forecast_response_data = retrieve_xml_file_names(forecast_report_name)
 outturn_response_data = retrieve_xml_file_names(outturn_report_name)
 
-#Funtion to pass in the names we gathered and doing a api query to get the XML files content into a dataframe
+# Function to pass in the names we gathered and doing an API query to get the XML files content into a dataframe
 def response_data_to_dataframe(response_data, availability, participant_name_ROI, participant_name_NI):
     availability_array = []
     data_array = []
@@ -100,97 +90,76 @@ def response_data_to_dataframe(response_data, availability, participant_name_ROI
     df = pd.DataFrame(data=data)
     return df
 
-
-
 forecast = response_data_to_dataframe(forecast_response_data, 'ForecastAvailability', participant_name_ROI,participant_name_NI)
 outturn = response_data_to_dataframe(outturn_response_data, 'AvgOutturnAvail', participant_name_ROI, participant_name_NI)
 
-
-#changing string to date and time
+# Changing string to date and time
 forecast['Times'] = pd.to_datetime(forecast['Times'])
 outturn['Times'] = pd.to_datetime(outturn['Times'])
 
-#changing forecast fromt UTC to Irish Time
+# Changing forecast from UTC to Irish Time
 forecast['Times'] = forecast['Times'] + pd.DateOffset(hours=1)
 
-#formatted dates for the graph
+# Formatted dates for the graph
 full_time_range = pd.date_range(start=min(forecast['Times'].min(), outturn['Times'].min()),
                                 end=max(forecast['Times'].max(), outturn['Times'].max()),
                                 freq='30T')
 
-print(forecast)
-print(outturn)
-#Averaging out the data points for any given time
-# Forecast = Forecast.groupby('Times').mean().reindex(full_time_range).reset_index()
-# Outturn = Outturn.groupby('Times').mean().reindex(full_time_range).reset_index()
+# Plotting Forecast vs Outturn as Line Plots
+for resource, resource_name in resource_names.items():
+    forecast_new = forecast[forecast['ResourceName'] == resource_name]
+    outturn_new = outturn[outturn['ResourceName'] == resource_name]
 
+    plt.figure(figsize=(30, 6))
+    plt.plot(forecast_new['Times'], forecast_new['Availability'], label='Forecast')
+    plt.plot(outturn_new["Times"], outturn_new['Availability'], label='Outturn')
+    plt.xticks(rotation=90)
+    plt.rcParams.update({'font.size':22})
+    plt.legend()
+    plt.xlabel('Times')
+    plt.ylabel('Availability')
+    plt.title(resource)
+    plt.savefig(f"availability_against_resource_{resource}_line.jpg")
+    plt.close('all')
 
-for resource in resource_names:
-  print(resource)
-  forecast_new = forecast[forecast['ResourceName']==resource_names[resource]]
-  outturn_new = outturn[outturn['ResourceName']==resource_names[resource]]
+# Plotting Forecast vs Outturn as Scatter Plots
+for resource, resource_name in resource_names.items():
+    forecast_new = forecast[forecast['ResourceName'] == resource_name]
+    outturn_new = outturn[outturn['ResourceName'] == resource_name]
 
+    plt.figure(figsize=(30, 10))
+    plt.scatter(forecast_new['Times'], forecast_new['Availability'], label='Forecast', s=15)
+    plt.scatter(outturn_new['Times'], outturn_new['Availability'], label='Outturn', s=15)
+    plt.xticks(rotation=90)
+    plt.rcParams.update({'font.size':22})
+    plt.legend()
+    plt.xlabel('Times')
+    plt.ylabel('Availability')
+    plt.title(resource)
+    plt.savefig(f"availability_against_resource_{resource}_scatter.jpg")
+    plt.close('all')
 
-  plt.figure(figsize=(30, 6))
+# Plotting Forecast vs Outturn as Bar Charts
+for resource, resource_name in resource_names.items():
+    forecast_new = forecast[forecast['ResourceName'] == resource_name]
+    outturn_new = outturn[outturn['ResourceName'] == resource_name]
 
-  plt.figure
+    labels = ['Average Outturn', 'Forecast Availability']
+    counts = [outturn_new['Availability'].mean(), forecast_new['Availability'].mean()]
+    bar_labels = ['Forecast', 'Outturn']
+    bar_colors = ['tab:blue', 'tab:orange']
+    
+    plt.figure(figsize=(10, 10))
+    plt.bar(labels, counts, label=bar_labels, color=bar_colors)
+    plt.ylabel('Availability (MW)')
+    plt.title(resource)
+    plt.legend(title='Viotas Outturn vs Availability')
+    plt.savefig(f"availability_against_resource_{resource}_bar.jpg")
+    plt.close('all')
 
-  plt.plot(forecast_new['Times'], forecast_new['Availability'], label='Forecast')
-  plt.plot(outturn_new["Times"], outturn_new['Availability'], label='Outturn')
-  plt.xticks(rotation=90)
-  plt.rcParams.update({'font.size':22})
-  plt.legend()
-  plt.xlabel('Times')
-  plt.ylabel('Availability')
-  plt.title(resource)
-  plt.show()
-
-  #Same as above but using a scatterplot
-for resource in resource_names:
-  print(resource)
-  forecast_new = forecast[forecast['ResourceName']==resource_names[resource]]
-  outturn_new = outturn[outturn['ResourceName']==resource_names[resource]]
-
-
-  plt.figure(figsize=(30, 10))
-  plt.scatter(forecast_new['Times'], forecast_new['Availability'], label='Forecast',s=15)
-  plt.scatter(outturn_new['Times'], outturn_new['Availability'], label='Outturn', s=15)
-  plt.xticks(rotation=90)
-  plt.rcParams.update({'font.size':22})
-  plt.legend()
-  plt.xlabel('Times')
-  plt.ylabel('Availability')
-  plt.title(resource)
-  plt.show()
-
-
-
-for resource in resource_names:
-  print(resource)
-  forecast_new = forecast[forecast['ResourceName']==resource_names[resource]]
-  outturn_new = outturn[outturn['ResourceName']==resource_names[resource]]
-
-
-  labels = ['Average Outturn', 'Forecast Availibility']
-
-  counts = [outturn_new['Availability'].mean(),forecast_new['Availability'].mean()]
-  bar_labels = [ 'Forecast','Outturn']
-  bar_colors = ['tab:blue','tab:orange']
-  plt.figure(figsize=(10,10))
-  plt.bar(labels, counts, label=bar_labels, color=bar_colors)
-
-
-  plt.ylabel('Availability (MW)')
-  plt.title(resource)
-  plt.legend(title='Viotas Outturn vs Availability')
-
-  plt.show()
-
-
-#using the keys as the X
+# Plotting Average Forecast vs Outturn Availability by Resource
 names = resource_names.keys()
-resource_names = np.unique(forecast['ResourceName'])
-x_axis = np.arange(len(resource_names))
+x_axis = np.arange(len(names))
 
 forecast_means = forecast.groupby('ResourceName')['Availability'].mean()
 outturn_means = outturn.groupby('ResourceName')['Availability'].mean()
@@ -207,50 +176,51 @@ plt.legend()
 
 # Display the chart
 plt.tight_layout()  # Adjust layout for better spacing
-plt.show()
-
+plt.savefig("average_forecast_vs_outturn_availability_by_resource.jpg")
+plt.close('all')
 
 all_weekly_forecast_mwh = pd.DataFrame()
 all_weekly_outturn_mwh = pd.DataFrame()
 
-#Breakdown
-for resource in resource_names:
-  forecast_new = forecast[forecast['ResourceName']==resource_names[resource]].copy()
-  outturn_new = outturn[outturn['ResourceName']==resource_names[resource]].copy()
+# Breakdown
+for resource, resource_name in resource_names.items():
+    forecast_new = forecast[forecast['ResourceName'] == resource_name].copy()
+    outturn_new = outturn[outturn['ResourceName'] == resource_name].copy()
 
-  # halving the Availability do its MWh's
-  forecast_new['MWh'] = forecast_new['Availability'] * 0.5
-  outturn_new['MWh'] = outturn_new['Availability'] * 0.5
+    # Halving the Availability do its MWh's
+    forecast_new['MWh'] = forecast_new['Availability'] * 0.5
+    outturn_new['MWh'] = outturn_new['Availability'] * 0.5
 
-  #using pandas string to date funtion so we can use the dates funtionalitys
-  forecast_new['Times'] = pd.to_datetime(forecast_new['Times'])
-  outturn_new['Times'] = pd.to_datetime(outturn_new['Times'])
+    # Using pandas string to date function so we can use the dates functionality
+    forecast_new['Times'] = pd.to_datetime(forecast_new['Times'])
+    outturn_new['Times'] = pd.to_datetime(outturn_new['Times'])
 
-  #changing the dataframes inded to the time colums
-  forecast_new.set_index('Times', inplace=True)
-  outturn_new.set_index('Times', inplace=True)
+    # Changing the dataframes index to the time columns
+    forecast_new.set_index('Times', inplace=True)
+    outturn_new.set_index('Times', inplace=True)
 
-  # Sampling the data weekly and setting it to start on the monday of each week
-  weekly_forecast_mwh = forecast_new['MWh'].resample('W-MON').sum()
-  weekly_outturn_mwh = outturn_new['MWh'].resample('W-MON').sum()
+    # Sampling the data weekly and setting it to start on the monday of each week
+    weekly_forecast_mwh = forecast_new['MWh'].resample('W-MON').sum()
+    weekly_outturn_mwh = outturn_new['MWh'].resample('W-MON').sum()
 
-  all_weekly_forecast_mwh[resource] = weekly_forecast_mwh
-  all_weekly_outturn_mwh[resource] = weekly_outturn_mwh
+    all_weekly_forecast_mwh[resource] = weekly_forecast_mwh
+    all_weekly_outturn_mwh[resource] = weekly_outturn_mwh
 
-  plt.figure(figsize=(20, 12))
-  plt.bar(weekly_forecast_mwh.index, weekly_forecast_mwh.values, label='Forecast MWh', width=2)
-  plt.bar(weekly_outturn_mwh.index, weekly_outturn_mwh.values, label='Outturn MWh', width=2, align='edge')
+    plt.figure(figsize=(20, 12))
+    plt.bar(weekly_forecast_mwh.index, weekly_forecast_mwh.values, label='Forecast MWh', width=2)
+    plt.bar(weekly_outturn_mwh.index, weekly_outturn_mwh.values, label='Outturn MWh', width=2, align='edge')
 
-  #only prints monday dates
-  plt.xticks(weekly_forecast_mwh.index[weekly_forecast_mwh.index.dayofweek == 0],
-           weekly_forecast_mwh.index[weekly_forecast_mwh.index.dayofweek == 0].strftime('%Y-%m-%d'),
-           rotation=90)
-  plt.xlabel('Week')
-  plt.ylabel('MWh')
-  plt.title(f'Weekly MWh for {resource}')
-  plt.legend()
-  plt.tight_layout()
-  plt.show()
+    #only prints monday dates
+    plt.xticks(weekly_forecast_mwh.index[weekly_forecast_mwh.index.dayofweek == 0],
+            weekly_forecast_mwh.index[weekly_forecast_mwh.index.dayofweek == 0].strftime('%Y-%m-%d'),
+            rotation=90)
+    plt.xlabel('Week')
+    plt.ylabel('MWh')
+    plt.title(f'Weekly MWh for {resource}')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f"weekly_MWH_for_{resource}.jpg")
+    plt.close('all')
 
 
 
@@ -271,7 +241,8 @@ plt.ylabel('MWh')
 plt.title('Total Weekly MWh: Outturn vs Availability')
 plt.legend()
 plt.tight_layout()
-plt.show()
+plt.savefig("total_weekly_MWh_outturn_vs_availability")
+plt.close('all')
 
 
 
@@ -341,42 +312,36 @@ def summary_df(forecast,outturn):
   return resource_summary
 
 OverallSummary = summary_df(forecast,outturn)
-print(OverallSummary)
+forecast.to_csv ('forecast.csv', index = False, header=True)
+outturn.to_csv ('outturn.csv', index = False, header=True)
 
 
 
 def split_dataframe_weekly(df, time_column='Times'):
+    # Ensure the time column is in datetime format
+    df[time_column] = pd.to_datetime(df[time_column])
 
-  # Ensure the time column is in datetime format
-  df[time_column] = pd.to_datetime(df[time_column])
+    # Set the time column as the index
+    newdf = df.set_index(time_column, inplace=False)
 
-  # Set the time column as the index
-  newdf = df.set_index(time_column, inplace=False)
+    # Resample the DataFrame weekly, starting on Mondays
+    weekly_dfs = {}
+    for start_date, week_df in newdf.resample('W-MON'):
+        weekly_dfs[start_date] = week_df
 
-  # Resample the DataFrame weekly, starting on Mondays
-  weekly_dfs = {}
-  current_week_start = newdf.index.min()
-  next_sunday = current_week_start + pd.offsets.Week(weekday=6)
-
-  while current_week_start <= newdf.index.max():
-    week_end = min(next_sunday, newdf.index.max())  # End of week or end of DataFrame
-    weekly_df = newdf[(newdf.index >= current_week_start) & (newdf.index <= week_end)]  # Include Sunday
-    if not weekly_df.empty:
-      weekly_dfs[current_week_start] = weekly_df
-
-    current_week_start = next_sunday + pd.Timedelta(days=1) # Start of the next week (Monday)
-    next_sunday += pd.offsets.Week()
-
-  return weekly_dfs
+    return weekly_dfs
 
 forecast_weekly = split_dataframe_weekly(forecast)
 outturn_weekly = split_dataframe_weekly(outturn)
 
-display(forecast_weekly)
-display(outturn_weekly)
+# Save each weekly dataframe to a separate CSV file
+for start_date, weekly_df in forecast_weekly.items():
+    weekly_df.to_csv(f'forecast_weekly_{start_date.date()}.csv', index=False, header=True)
 
-for key in forecast_weekly.keys():
-  print(key)
-  summary =summary_df(forecast_weekly[key], outturn_weekly[key])
-  display(summary)
-  
+for start_date, weekly_df in outturn_weekly.items():
+    weekly_df.to_csv(f'outturn_weekly_{start_date.date()}.csv', index=False, header=True)
+
+# Generating summary for each weekly split
+for start_date in forecast_weekly.keys():
+    summary = summary_df(forecast_weekly[start_date], outturn_weekly[start_date])
+    summary.to_csv(f'summary_{start_date.date()}.csv', index=False, header=True)
