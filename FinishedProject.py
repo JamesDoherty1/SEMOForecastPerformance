@@ -10,29 +10,28 @@ from IPython.display import display
 
 api_link = "http://reports.sem-o.com/api/v1/documents/static-reports"
 
-def apiQuery(parameters):
+def api_query(parameters):
     Response = requests.get(api_link, params=parameters)
     return Response
 
 # Specifying our parameters
-startDate = '2024-05-04'
-endDate = '2024-07-03'
-PageSize = '1'
-SortBy = 'PublishTime'
-ForecastReportName = 'Forecast Availability'
-OutturnReportName = 'Average Outturn Availability'
-ParticipantNameROI = 'PT_400116'
-ParticipantNameNI = 'PT_502516'
+start_date = '2024-06-03'
+end_date = '2024-06-03'
+page_size = '1'
+sort_by = 'PublishTime'
+forecast_report_name = 'Forecast Availability'
+outturn_report_name = 'Average Outturn Availability'
+participant_name_ROI = 'PT_400116'
+participant_name_NI = 'PT_502516'
 
-ResourceNames = {"EE1":"DSU_401400", "EE2":"DSU_401870", "EE3":"DSU_402100", "EE4":"DSU_402120", "EE5":"DSU_402090", "EE6":"DSU_403520",
+resource_names = {"EE1":"DSU_401400", "EE2":"DSU_401870", "EE3":"DSU_402100", "EE4":"DSU_402120", "EE5":"DSU_402090", "EE6":"DSU_403520",
 "EE7":"DSU_403560", "EE8":"DSU_403630", "EE9": "DSU_403640","VN1":"DSU_503460", "VS1":"DSU_403730","VS2": "DSU_403760"  }
-#VN1 is empty , ,
 # Getting the range of dates
-dateRange = pd.date_range(start=startDate, end=endDate).date
+date_range = pd.date_range(start=start_date, end=end_date).date
 
 
 # Function to filter XML strings from a JSON object
-def filterXMLStrings(json_data):
+def filter_xml_strings(json_data):
     try:
         items = json_data.get('items', [])
         filtered_strings = [item['ResourceName'] for item in items if item['ResourceName'].endswith('.xml')]
@@ -47,129 +46,134 @@ def filterXMLStrings(json_data):
 
 
 # Function to loop through dates and return all the XML file names we need
-def RetrieveXMLFileNames(XMLFileType):
-    XMLFileNames = []
-    for date in dateRange:
-        TypeParameters = {
-            'ReportName': XMLFileType,
+def retrieve_xml_file_names(xml_file_type):
+    
+    xml_file_names = []
+
+    for date in date_range:
+        
+        type_parameters = {
+            'ReportName': xml_file_type,
             'Date': date,
-            'page_size': PageSize,
-            'sort_by': SortBy,
+            'page_size': page_size,
+            'sort_by': sort_by,
         }
-        Response = apiQuery(TypeParameters)
+
+        Response = api_query(type_parameters)
+
         if Response.status_code != 200:
             print(f"Failed to retrieve data: {Response.status_code}")
         else:
             GridInfo = Response.json()
 
             # Filtering data to isolate the names of the XML files we want to use
-            FilteredGridInfo = filterXMLStrings(GridInfo)
-            XMLFileNames.extend(FilteredGridInfo)  # Extend instead of append
+            filtered_grid_info = filter_xml_strings(GridInfo)
+            xml_file_names.extend(filtered_grid_info)  # Extend instead of append
 
             #print("\n\n\n" + XMLFileType + ":", FilteredGridInfo)
 
-    return XMLFileNames
+    return xml_file_names
 
 
 
-ForecastResponseData = RetrieveXMLFileNames(ForecastReportName)
-OutturnResponseData = RetrieveXMLFileNames(OutturnReportName)
+forecast_response_data = retrieve_xml_file_names(forecast_report_name)
+outturn_response_data = retrieve_xml_file_names(outturn_report_name)
 
 #Funtion to pass in the names we gathered and doing a api query to get the XML files content into a dataframe
-def ResponseDataToDataFrame(ResponseData, Availability, ParticipantNameROI, ParticipantNameNI):
+def response_data_to_dataframe(response_data, availability, participant_name_ROI, participant_name_NI):
     availability_array = []
     data_array = []
-    ResourceNames = []
-    for data in ResponseData:
+    resource_names = []
+    for data in response_data:
         url = 'https://reports.sem-o.com/documents/' + data
         df = pd.read_xml(url)
 
-        if 'ParticipantName' in df.columns and Availability in df.columns:
-            filtered_dfROI = df[df['ParticipantName'] == ParticipantNameROI]
-            filtered_dfNI = df[df['ParticipantName'] == ParticipantNameNI]
+        if 'ParticipantName' in df.columns and availability in df.columns:
+            filtered_dfROI = df[df['ParticipantName'] == participant_name_ROI]
+            filtered_dfNI = df[df['ParticipantName'] == participant_name_NI]
             filtered_df = pd.concat([filtered_dfROI, filtered_dfNI])
-            availability_array.extend(filtered_df[Availability].dropna().tolist())
+            availability_array.extend(filtered_df[availability].dropna().tolist())
             data_array.extend(filtered_df['StartTime'].dropna().tolist())
-            ResourceNames.extend(filtered_df['ResourceName'].dropna().tolist())
+            resource_names.extend(filtered_df['ResourceName'].dropna().tolist())
 
-    data = {'Times': data_array, 'Availability': availability_array, 'ResourceName': ResourceNames}
+    data = {'Times': data_array, 'Availability': availability_array, 'ResourceName': resource_names}
     df = pd.DataFrame(data=data)
     return df
 
 
 
-Forecast = ResponseDataToDataFrame(ForecastResponseData, 'ForecastAvailability', ParticipantNameROI,ParticipantNameNI)
-Outturn = ResponseDataToDataFrame(OutturnResponseData, 'AvgOutturnAvail', ParticipantNameROI, ParticipantNameNI)
+forecast = response_data_to_dataframe(forecast_response_data, 'ForecastAvailability', participant_name_ROI,participant_name_NI)
+outturn = response_data_to_dataframe(outturn_response_data, 'AvgOutturnAvail', participant_name_ROI, participant_name_NI)
 
 
 #changing string to date and time
-Forecast['Times'] = pd.to_datetime(Forecast['Times'])
-Outturn['Times'] = pd.to_datetime(Outturn['Times'])
+forecast['Times'] = pd.to_datetime(forecast['Times'])
+outturn['Times'] = pd.to_datetime(outturn['Times'])
 
 #changing forecast fromt UTC to Irish Time
-Forecast['Times'] = Forecast['Times'] + pd.DateOffset(hours=1)
+forecast['Times'] = forecast['Times'] + pd.DateOffset(hours=1)
 
 #formatted dates for the graph
-full_time_range = pd.date_range(start=min(Forecast['Times'].min(), Outturn['Times'].min()),
-                                end=max(Forecast['Times'].max(), Outturn['Times'].max()),
+full_time_range = pd.date_range(start=min(forecast['Times'].min(), outturn['Times'].min()),
+                                end=max(forecast['Times'].max(), outturn['Times'].max()),
                                 freq='30T')
 
-print(Forecast)
-print(Outturn)
+print(forecast)
+print(outturn)
 #Averaging out the data points for any given time
 # Forecast = Forecast.groupby('Times').mean().reindex(full_time_range).reset_index()
 # Outturn = Outturn.groupby('Times').mean().reindex(full_time_range).reset_index()
 
 
-for Resource in ResourceNames:
-  print(Resource)
-  ForecastNew = Forecast[Forecast['ResourceName']==ResourceNames[Resource]]
-  OutturnNew = Outturn[Outturn['ResourceName']==ResourceNames[Resource]]
+for resource in resource_names:
+  print(resource)
+  forecast_new = forecast[forecast['ResourceName']==resource_names[resource]]
+  outturn_new = outturn[outturn['ResourceName']==resource_names[resource]]
 
 
   plt.figure(figsize=(30, 6))
 
   plt.figure
 
-  plt.plot(ForecastNew['Times'], ForecastNew['Availability'], label='Forecast')
-  plt.plot(OutturnNew["Times"], OutturnNew['Availability'], label='Outturn')
+  plt.plot(forecast_new['Times'], forecast_new['Availability'], label='Forecast')
+  plt.plot(outturn_new["Times"], outturn_new['Availability'], label='Outturn')
   plt.xticks(rotation=90)
   plt.rcParams.update({'font.size':22})
   plt.legend()
   plt.xlabel('Times')
   plt.ylabel('Availability')
-  plt.title(Resource)
+  plt.title(resource)
   plt.show()
 
   #Same as above but using a scatterplot
-for Resource in ResourceNames:
-  print(Resource)
-  ForecastNew = Forecast[Forecast['ResourceName']==ResourceNames[Resource]]
-  OutturnNew = Outturn[Outturn['ResourceName']==ResourceNames[Resource]]
+for resource in resource_names:
+  print(resource)
+  forecast_new = forecast[forecast['ResourceName']==resource_names[resource]]
+  outturn_new = outturn[outturn['ResourceName']==resource_names[resource]]
 
 
   plt.figure(figsize=(30, 10))
-  plt.scatter(ForecastNew['Times'], ForecastNew['Availability'], label='Forecast',s=15)
-  plt.scatter(OutturnNew['Times'], OutturnNew['Availability'], label='Outturn', s=15)
+  plt.scatter(forecast_new['Times'], forecast_new['Availability'], label='Forecast',s=15)
+  plt.scatter(outturn_new['Times'], outturn_new['Availability'], label='Outturn', s=15)
   plt.xticks(rotation=90)
   plt.rcParams.update({'font.size':22})
   plt.legend()
   plt.xlabel('Times')
   plt.ylabel('Availability')
-  plt.title(Resource)
+  plt.title(resource)
   plt.show()
 
 
 
-for Resource in ResourceNames:
-  print(Resource)
-  ForecastNew = Forecast[Forecast['ResourceName']==ResourceNames[Resource]]
-  OutturnNew = Outturn[Outturn['ResourceName']==ResourceNames[Resource]]
+for resource in resource_names:
+  print(resource)
+  forecast_new = forecast[forecast['ResourceName']==resource_names[resource]]
+  outturn_new = outturn[outturn['ResourceName']==resource_names[resource]]
 
 
   labels = ['Average Outturn', 'Forecast Availibility']
 
-  counts = [OutturnNew['Availability'].mean(),ForecastNew['Availability'].mean()]
+  counts = [outturn_new['Availability'].mean(),forecast_new['Availability'].mean()]
   bar_labels = [ 'Forecast','Outturn']
   bar_colors = ['tab:blue','tab:orange']
   plt.figure(figsize=(10,10))
@@ -177,19 +181,19 @@ for Resource in ResourceNames:
 
 
   plt.ylabel('Availability (MW)')
-  plt.title(Resource)
+  plt.title(resource)
   plt.legend(title='Viotas Outturn vs Availability')
 
   plt.show()
 
 
 #using the keys as the X
-names = ResourceNames.keys()
-resource_names = np.unique(Forecast['ResourceName'])
+names = resource_names.keys()
+resource_names = np.unique(forecast['ResourceName'])
 x_axis = np.arange(len(resource_names))
 
-forecast_means = Forecast.groupby('ResourceName')['Availability'].mean()
-outturn_means = Outturn.groupby('ResourceName')['Availability'].mean()
+forecast_means = forecast.groupby('ResourceName')['Availability'].mean()
+outturn_means = outturn.groupby('ResourceName')['Availability'].mean()
 
 plt.figure(figsize=(20, 10))
 plt.bar(x_axis - 0.2, forecast_means, 0.4, label='Forecast')
@@ -210,28 +214,28 @@ all_weekly_forecast_mwh = pd.DataFrame()
 all_weekly_outturn_mwh = pd.DataFrame()
 
 #Breakdown
-for Resource in ResourceNames:
-  ForecastNew = Forecast[Forecast['ResourceName']==ResourceNames[Resource]].copy()
-  OutturnNew = Outturn[Outturn['ResourceName']==ResourceNames[Resource]].copy()
+for resource in resource_names:
+  forecast_new = forecast[forecast['ResourceName']==resource_names[resource]].copy()
+  outturn_new = outturn[outturn['ResourceName']==resource_names[resource]].copy()
 
   # halving the Availability do its MWh's
-  ForecastNew['MWh'] = ForecastNew['Availability'] * 0.5
-  OutturnNew['MWh'] = OutturnNew['Availability'] * 0.5
+  forecast_new['MWh'] = forecast_new['Availability'] * 0.5
+  outturn_new['MWh'] = outturn_new['Availability'] * 0.5
 
   #using pandas string to date funtion so we can use the dates funtionalitys
-  ForecastNew['Times'] = pd.to_datetime(ForecastNew['Times'])
-  OutturnNew['Times'] = pd.to_datetime(OutturnNew['Times'])
+  forecast_new['Times'] = pd.to_datetime(forecast_new['Times'])
+  outturn_new['Times'] = pd.to_datetime(outturn_new['Times'])
 
   #changing the dataframes inded to the time colums
-  ForecastNew.set_index('Times', inplace=True)
-  OutturnNew.set_index('Times', inplace=True)
+  forecast_new.set_index('Times', inplace=True)
+  outturn_new.set_index('Times', inplace=True)
 
   # Sampling the data weekly and setting it to start on the monday of each week
-  weekly_forecast_mwh = ForecastNew['MWh'].resample('W-MON').sum()
-  weekly_outturn_mwh = OutturnNew['MWh'].resample('W-MON').sum()
+  weekly_forecast_mwh = forecast_new['MWh'].resample('W-MON').sum()
+  weekly_outturn_mwh = outturn_new['MWh'].resample('W-MON').sum()
 
-  all_weekly_forecast_mwh[Resource] = weekly_forecast_mwh
-  all_weekly_outturn_mwh[Resource] = weekly_outturn_mwh
+  all_weekly_forecast_mwh[resource] = weekly_forecast_mwh
+  all_weekly_outturn_mwh[resource] = weekly_outturn_mwh
 
   plt.figure(figsize=(20, 12))
   plt.bar(weekly_forecast_mwh.index, weekly_forecast_mwh.values, label='Forecast MWh', width=2)
@@ -243,7 +247,7 @@ for Resource in ResourceNames:
            rotation=90)
   plt.xlabel('Week')
   plt.ylabel('MWh')
-  plt.title(f'Weekly MWh for {Resource}')
+  plt.title(f'Weekly MWh for {resource}')
   plt.legend()
   plt.tight_layout()
   plt.show()
@@ -275,7 +279,7 @@ for i in range(len(forecast_means)):
   difference_forecast_outturn = forecast_means[i] - outturn_means[i]
   print(difference_forecast_outturn)
 
-for key in ResourceNames.keys():
+for key in resource_names.keys():
   average_difference_for_resource={
 
   }
@@ -284,22 +288,24 @@ for key in ResourceNames.keys():
 
 
 
-def Summary_df(Forecast,Outturn):
+def summary_df(forecast,outturn):
 
   resource_summary = pd.DataFrame( columns = ['Name', 'Over Forecast', 'Under Forecast', 'Overall', 'Percentage Over', 'Percentage Under'])
 
-  for Resource in ResourceNames:
-    ForecastNew = Forecast[Forecast['ResourceName']==ResourceNames[Resource]]
-    OutturnNew = Outturn[Outturn['ResourceName']==ResourceNames[Resource]]
+  for Resource in resource_names:
+    forecast_new = forecast[forecast['ResourceName']==resource_names[Resource]]
+    outturn_new = outturn[outturn['ResourceName']==resource_names[Resource]]
 
     positive_diffs = []
     negative_diffs = []
 
     # Iterate through each row in OutturnNew
-    for i in range(len(OutturnNew)):
-      forecast_availability = ForecastNew['Availability'].iloc[i]
-      outturn_availability = OutturnNew['Availability'].iloc[i]
+    for i in range(len(outturn_new)):
+
+      forecast_availability = forecast_new['Availability'].iloc[i]
+      outturn_availability = outturn_new['Availability'].iloc[i]
       difference = forecast_availability - outturn_availability
+
       if difference == 0:
         positive_diffs.append(0)
         negative_diffs.append(0)
@@ -307,6 +313,7 @@ def Summary_df(Forecast,Outturn):
         positive_diffs.append(difference)
       else:
         negative_diffs.append(difference)
+
   # Calculate the sums using the built-in sum() function
     positive = sum(positive_diffs)
     negative = sum(negative_diffs)
@@ -315,6 +322,7 @@ def Summary_df(Forecast,Outturn):
     negative_percentage = 0
 
     if positive != 0 and negative ==0:
+
       posative_percentage = 100
       negative_percentage = 0
     elif positive == 0 and negative !=0:
@@ -332,7 +340,7 @@ def Summary_df(Forecast,Outturn):
     resource_summary.loc[len(resource_summary)] = new_row
   return resource_summary
 
-OverallSummary = Summary_df(Forecast,Outturn)
+OverallSummary = summary_df(forecast,outturn)
 print(OverallSummary)
 
 
@@ -361,19 +369,14 @@ def split_dataframe_weekly(df, time_column='Times'):
 
   return weekly_dfs
 
-Forecast_weekly = split_dataframe_weekly(Forecast)
-Outturn_weekly = split_dataframe_weekly(Outturn)
+forecast_weekly = split_dataframe_weekly(forecast)
+outturn_weekly = split_dataframe_weekly(outturn)
 
-display(Forecast_weekly)
-display(Outturn_weekly)
+display(forecast_weekly)
+display(outturn_weekly)
 
-
-
-
-for key in Forecast_weekly.keys():
+for key in forecast_weekly.keys():
   print(key)
-  summary =Summary_df(Forecast_weekly[key], Outturn_weekly[key])
+  summary =summary_df(forecast_weekly[key], outturn_weekly[key])
   display(summary)
-
-
   
