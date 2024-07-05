@@ -119,7 +119,7 @@ for resource, resource_name in resource_names.items():
     plt.xlabel('Times')
     plt.ylabel('Availability')
     plt.title(resource)
-    plt.savefig(f"availability_against_resource_{resource}_line.jpg")
+    plt.savefig(f"LineChart/availability_against_resource_{resource}_line.jpg")
     plt.close('all')
 
 # Plotting Forecast vs Outturn as Scatter Plots
@@ -136,7 +136,7 @@ for resource, resource_name in resource_names.items():
     plt.xlabel('Times')
     plt.ylabel('Availability')
     plt.title(resource)
-    plt.savefig(f"availability_against_resource_{resource}_scatter.jpg")
+    plt.savefig(f"ScatterChart/availability_against_resource_{resource}_scatter.jpg")
     plt.close('all')
 
 # Plotting Forecast vs Outturn as Bar Charts
@@ -154,7 +154,7 @@ for resource, resource_name in resource_names.items():
     plt.ylabel('Availability (MW)')
     plt.title(resource)
     plt.legend(title='Viotas Outturn vs Availability')
-    plt.savefig(f"availability_against_resource_{resource}_bar.jpg")
+    plt.savefig(f"BarChart/availability_against_resource_{resource}_bar.jpg")
     plt.close('all')
 
 # Plotting Average Forecast vs Outturn Availability by Resource
@@ -176,7 +176,7 @@ plt.legend()
 
 # Display the chart
 plt.tight_layout()  # Adjust layout for better spacing
-plt.savefig("average_forecast_vs_outturn_availability_by_resource.jpg")
+plt.savefig("BarChart/average_forecast_vs_outturn_availability_by_resource.jpg")
 plt.close('all')
 
 all_weekly_forecast_mwh = pd.DataFrame()
@@ -219,7 +219,7 @@ for resource, resource_name in resource_names.items():
     plt.title(f'Weekly MWh for {resource}')
     plt.legend()
     plt.tight_layout()
-    plt.savefig(f"weekly_MWH_for_{resource}.jpg")
+    plt.savefig(f"BarChart/weekly_MWH_for_{resource}.jpg")
     plt.close('all')
 
 
@@ -241,7 +241,7 @@ plt.ylabel('MWh')
 plt.title('Total Weekly MWh: Outturn vs Availability')
 plt.legend()
 plt.tight_layout()
-plt.savefig("total_weekly_MWh_outturn_vs_availability")
+plt.savefig("BarChart/total_weekly_MWh_outturn_vs_availability")
 plt.close('all')
 
 
@@ -312,8 +312,8 @@ def summary_df(forecast,outturn):
   return resource_summary
 
 OverallSummary = summary_df(forecast,outturn)
-forecast.to_csv ('forecast.csv', index = False, header=True)
-outturn.to_csv ('outturn.csv', index = False, header=True)
+forecast.to_csv ('CSVs/forecast.csv', index = False, header=True)
+outturn.to_csv ('CSVs/outturn.csv', index = False, header=True)
 
 
 
@@ -336,12 +336,12 @@ outturn_weekly = split_dataframe_weekly(outturn)
 
 # Save each weekly dataframe to a separate CSV file
 for start_date, weekly_df in forecast_weekly.items():
-    weekly_df.to_csv(f'forecast_weekly_{start_date.date()}.csv', index=False, header=True)
+    weekly_df.to_csv(f'CSVs/forecast_weekly_{start_date.date()}.csv', index=False, header=True)
 
 for start_date, weekly_df in outturn_weekly.items():
-    weekly_df.to_csv(f'outturn_weekly_{start_date.date()}.csv', index=False, header=True)
+    weekly_df.to_csv(f'CSVs/outturn_weekly_{start_date.date()}.csv', index=False, header=True)
 
 # Generating summary for each weekly split
 for start_date in forecast_weekly.keys():
     summary = summary_df(forecast_weekly[start_date], outturn_weekly[start_date])
-    summary.to_csv(f'summary_{start_date.date()}.csv', index=False, header=True)
+    summary.to_csv(f'CSVs/summary_{start_date.date()}.csv', index=False, header=True)
